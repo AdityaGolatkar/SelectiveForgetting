@@ -1,6 +1,6 @@
 ### Academic Software License
 
-####  Information Dropout
+####  SelectiveForgetting
 
 *No Commercial Use*
 
