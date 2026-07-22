@@ -5,10 +5,11 @@ open Real Finset Matrix
 namespace SelectiveForgetting
 
 /-!
-# Proposition 3 — Optimal quadratic scrubbing algorithm
+# Proposition 3 — finite-time algebraic core of optimal quadratic scrubbing
 
-Formalizes **Proposition 3** of "Eternal Sunshine of the Spotless Net" (catalog id
-`prop3_quadratic_scrubbing`, Appendix C). Under a local quadratic approximation of the loss
+Formalizes the **finite-time algebraic core of Proposition 3** of
+"Eternal Sunshine of the Spotless Net" (catalog id `prop3_quadratic_scrubbing`, Appendix C).
+Under a local quadratic approximation of the loss
 and gradient-flow training, two networks trained on the full data `D` and on the retain set
 `Dr` from the *same* random initialization `w₀` are related by an explicit affine map `h`,
 so that applying `h` to the `D`-trained weights recovers exactly the `Dr`-trained weights:
@@ -34,9 +35,17 @@ headline `quadratic_scrubbing_flow_identity` abstracts `e^{-At}, e^{-Bt}, e^{At}
 `EA, EB, FA` with `FA * EA = 1`; the corollary `quadratic_scrubbing_flow_identity_exp`
 instantiates them with the genuine matrix exponential, discharging the hypothesis from
 `exp (MA) * exp (-MA) = exp 0 = 1`.
+
+## Exact boundary of the formalization
+
+This file does **not** derive the closed forms from quadratic-loss gradients or an ODE
+existence/uniqueness theorem; it takes the two formulas displayed by the paper as hypotheses.
+It also does not formalize the induced equality of probability laws/conditional KL zero, or
+the analytic `t → ∞` Newton-update limit in Eq. (7). Those claims remain separately cataloged,
+so the declarations below must not be described as a proof of the full proposition.
 -/
 
-/-- **Proposition 3 (flow substitution identity).** Let `wA = w*_A + EA (w₀ - w*_A)` and
+/-- **Proposition 3 (finite-time flow substitution identity).** Let `wA = w*_A + EA (w₀ - w*_A)` and
 `wB = w*_B + EB (w₀ - w*_B)` be the two gradient-flow paths started from the shared
 initialization `w₀`, where `EA, EB` model `e^{-At}, e^{-Bt}` and `FA` models `e^{At}`, the
 inverse of `EA` (`FA * EA = 1`). Writing `d = wA - w*_A` and `d_r = wA - w*_B`, the retain
@@ -57,7 +66,8 @@ theorem quadratic_scrubbing_flow_identity {n : Type*} [Fintype n] [DecidableEq n
   simp only [Matrix.mulVec_add, Matrix.mulVec_sub, hinv]
   abel
 
-/-- **Proposition 3 with the genuine matrix exponential.** Instantiates the flow identity with
+/-- **Finite-time identity with the genuine matrix exponential.** Instantiates the flow identity
+with
 `EA = e^{-MA}`, `EB = e^{-MB}`, `FA = e^{MA}` (where `MA = At`, `MB = Bt`), showing the
 abstract hypothesis `FA * EA = 1` is realized by the matrix exponential via
 `e^{MA} · e^{-MA} = e^{MA + (-MA)} = e^0 = 1`. -/

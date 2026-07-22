@@ -7,8 +7,9 @@ namespace SelectiveForgetting
 /-!
 # Proposition 4 — Robust (isotropic) scrubbing: optimal noise covariance
 
-Formalizes **Proposition 4** of "Eternal Sunshine of the Spotless Net" (catalog id
-`prop4_robust_scrubbing`, Appendix C) in the isotropic case. After the paper's second-order
+Formalizes the **isotropic specialization of Proposition 4** of
+"Eternal Sunshine of the Spotless Net" (catalog id `prop4_robust_scrubbing_isotropic`,
+Appendix C). After the paper's second-order
 (Gaussian/quadratic) approximation of the Forgetting Lagrangian — which is the paper's own
 stated hypothesis — the objective in the noise covariance `Σ` (a positive-definite matrix,
 written `Cov` in the Lean code since `Σ` is reserved syntax) reduces, up to the additive
@@ -22,7 +23,13 @@ stronger than the paper's first-order (stationarity) derivation:
 * `robust_scrubbing_isotropic_bound` : `2√c · tr(B^{1/2}) ≤ tr(B Σ) + c tr(Σ⁻¹)` for every PD
   `Σ` (the global lower bound; halving gives the objective's minimum value
   `√c · tr(B^{1/2}) = √(λσ_h²) · tr(B^{1/2})`).
-* `robust_scrubbing_isotropic_attains` : the covariance `Σ* = √c · B^{-1/2}` attains it.
+* `robust_scrubbing_isotropic_candidate_posDef` : if the chosen square root `B^{1/2}` is
+  positive definite, then `Σ* = √c · B^{-1/2}` is itself positive definite, so it is an
+  admissible covariance (this excludes the negative-square-root pathology).
+* `robust_scrubbing_isotropic_attains` : the covariance `Σ* = √c · B^{-1/2}` attains the bound.
+* `robust_scrubbing_isotropic_global_minimum` : packages admissibility and attainment with the
+  lower bound as the optimization theorem `g(Σ*) ≤ g(Σ)` for every positive-definite-rooted
+  covariance `Σ`.
 * `robust_scrubbing_isotropic_optimality_condition` : `Σ* B Σ* = c · I`, i.e. the paper's
   optimality condition `Σ B Σ = λ Σ_h` in the isotropic case `Σ_h = σ_h² I` (so
   `λ Σ_h = λσ_h² I = c I`), and hence `Σ* = √(λσ_h²) B^{-1/2}`, exactly Eq. of Prop 4.
@@ -32,11 +39,16 @@ stronger than the paper's first-order (stationarity) derivation:
 1. **The quadratic/Gaussian approximation is the paper's hypothesis, not a theorem.** We
    formalize the *exact* optimization of the resulting approximate objective; the `≃` step in
    the paper (dropping `o(n²)`) is assumed, exactly as the paper assumes it.
-2. **Symmetric square roots are taken as hypotheses.** Every real PD matrix has a unique PD
-   (hence symmetric) square root by the spectral theorem; rather than construct it through the
-   continuous functional calculus we hypothesize `Bsqrt, Ssqrt` symmetric with
-   `Bsqrt*Bsqrt = B`, `Ssqrt*Ssqrt = Cov` (and invertibility). The hypotheses are satisfiable
-   for exactly the matrices in the paper's scope (PD `B`, PD `Σ`).
+2. **Positive-definite square roots are taken as explicit hypotheses.** Every real PD matrix has
+   a unique PD square root by the spectral theorem; rather than construct it through the continuous
+   functional calculus we quantify over `Bsqrt, Ssqrt` with `Bsqrt*Bsqrt = B`,
+   `Ssqrt*Ssqrt = Cov` and require the roots themselves to be positive definite in the packaged
+   optimization theorem. This positivity is essential: an arbitrary symmetric square root could
+   choose the negative branch and make the proposed covariance inadmissible.
+3. **The general non-isotropic claim is not proved here.** The paper's condition
+   `Σ B Σ = λ Σ_h` for arbitrary positive-definite `Σ_h` requires a matrix-geometric-mean
+   construction in the non-commuting case. It is cataloged separately as
+   `prop4_robust_scrubbing_general`; every declaration in this file is isotropic.
 -/
 
 /-- **Completing the square in the Frobenius (trace) inner product.** For real square matrices
@@ -57,11 +69,12 @@ theorem two_mul_trace_le_of_transpose {n : Type*} [Fintype n] (P Q : Matrix n n 
   rw [hexp] at hpsd
   linarith
 
-/-- **Proposition 4 (isotropic global lower bound).** For PD `B = Bsqrt²`, `Cov = Ssqrt²` with
-`Bsqrt, Ssqrt` symmetric square roots (`Ssqrt` invertible) and `c ≥ 0`,
+/-- **Isotropic trace lower bound.** For factorizations `B = Bsqrt²`, `Cov = Ssqrt²` with
+`Bsqrt, Ssqrt` symmetric (`Ssqrt` invertible) and `c ≥ 0`,
 `2√c · tr(Bsqrt) ≤ tr(B Cov) + c · tr(Cov⁻¹)`. Halving, the minimum of the (isotropic,
-approximate) forgetting objective `½tr(BΣ) + (c/2)tr(Σ⁻¹)` over PD `Σ` is at least
-`√c · tr(B^{1/2})`. (`Cov` denotes the noise covariance `Σ`.) -/
+approximate) forgetting objective is bounded below by `√c · tr(Bsqrt)`. The packaged
+`robust_scrubbing_isotropic_global_minimum` adds positive-definite-root hypotheses before
+interpreting these matrices as the paper's admissible covariances. -/
 theorem robust_scrubbing_isotropic_bound {n : Type*} [Fintype n] [DecidableEq n]
     (B Cov Bsqrt Ssqrt : Matrix n n ℝ) (c : ℝ) (hc : 0 ≤ c)
     (hBs_sym : Bsqrt.IsSymm) (hBs : Bsqrt * Bsqrt = B)
@@ -93,9 +106,9 @@ theorem robust_scrubbing_isotropic_bound {n : Type*} [Fintype n] [DecidableEq n]
   rw [hPtP, hQtQ, hPtQ, ← mul_assoc] at hmain
   linarith
 
-/-- **Proposition 4 (optimality condition).** The optimal isotropic covariance
-`Σ* = √c · B^{-1/2}` satisfies `Σ* B Σ* = c · I`, i.e. the paper's condition `Σ B Σ = λ Σ_h`
-with `Σ_h = σ_h² I` and `c = λσ_h²`. -/
+/-- **Isotropic algebraic optimality condition.** For an invertible square root `Bsqrt`, the
+candidate expression `Σ* = √c · Bsqrt⁻¹` satisfies `Σ* B Σ* = c · I`. The packaged global
+theorem additionally requires `Bsqrt.PosDef`, making this expression an admissible covariance. -/
 theorem robust_scrubbing_isotropic_optimality_condition {n : Type*} [Fintype n] [DecidableEq n]
     (B Bsqrt : Matrix n n ℝ) (c : ℝ) (hc : 0 ≤ c)
     (hBs : Bsqrt * Bsqrt = B) (hBs_unit : IsUnit Bsqrt.det) :
@@ -106,10 +119,11 @@ theorem robust_scrubbing_isotropic_optimality_condition {n : Type*} [Fintype n] 
   rw [← mul_assoc, Matrix.nonsing_inv_mul Bsqrt hBs_unit, Matrix.one_mul,
       Matrix.mul_nonsing_inv Bsqrt hBs_unit]
 
-/-- **Proposition 4 (attainment).** With `c > 0`, the covariance `Σ* = √c · B^{-1/2}` attains
-the global lower bound of `robust_scrubbing_isotropic_bound`:
+/-- **Algebraic attainment.** With `c > 0`, the expression `Σ* = √c · Bsqrt⁻¹` attains
+the trace lower-bound value:
 `tr(B Σ*) + c · tr(Σ*⁻¹) = 2√c · tr(B^{1/2})`. Together with the bound, `Σ*` is a global
-minimizer of the isotropic forgetting objective. -/
+minimizer once the positive-definite-root assumptions of
+`robust_scrubbing_isotropic_global_minimum` are supplied. -/
 theorem robust_scrubbing_isotropic_attains {n : Type*} [Fintype n] [DecidableEq n]
     (B Bsqrt : Matrix n n ℝ) (c : ℝ) (hc : 0 < c)
     (hBs : Bsqrt * Bsqrt = B) (hBs_unit : IsUnit Bsqrt.det) :
@@ -130,5 +144,45 @@ theorem robust_scrubbing_isotropic_attains {n : Type*} [Fintype n] [DecidableEq 
   have hcs : c * s⁻¹ = s := by rw [← hss, mul_assoc, mul_inv_cancel₀ hs_ne, mul_one]
   rw [hBCov, hCovInv, Matrix.trace_smul, smul_eq_mul, ← mul_assoc, hcs]
   ring
+
+/-- **Proposition 4 (candidate admissibility).** If `Bsqrt` is the positive-definite square
+root of the positive-definite Hessian, then for `c > 0` the proposed isotropic covariance
+`Σ* = √c • Bsqrt⁻¹` is positive definite. Requiring `Bsqrt.PosDef` rules out an arbitrary
+negative square root, which satisfies the square equation but is not the canonical covariance
+root used by the paper. -/
+theorem robust_scrubbing_isotropic_candidate_posDef {n : Type*} [Fintype n] [DecidableEq n]
+    (Bsqrt : Matrix n n ℝ) (c : ℝ) (hc : 0 < c) (hBs_pos : Bsqrt.PosDef) :
+    (Real.sqrt c • Bsqrt⁻¹).PosDef :=
+  hBs_pos.inv.smul (Real.sqrt_pos.mpr hc)
+
+/-- **Proposition 4 (isotropic global minimization theorem).** Let `Bsqrt` and `Ssqrt` be
+positive-definite square roots of the Hessian `B` and an arbitrary admissible covariance
+`Cov`. Then the proposed covariance `Σ* = √c • Bsqrt⁻¹` is positive definite and has no
+larger reduced objective than `Cov`:
+
+`tr(B Σ*) + c tr(Σ*⁻¹) ≤ tr(B Cov) + c tr(Cov⁻¹)`.
+
+Thus the Lean theorem packages the two facts required for a genuine optimization claim:
+candidate admissibility and global minimality over the explicitly represented PD domain. -/
+theorem robust_scrubbing_isotropic_global_minimum {n : Type*} [Fintype n] [DecidableEq n]
+    (B Cov Bsqrt Ssqrt : Matrix n n ℝ) (c : ℝ) (hc : 0 < c)
+    (hBs_pos : Bsqrt.PosDef) (hBs : Bsqrt * Bsqrt = B)
+    (hSs_pos : Ssqrt.PosDef) (hSs : Ssqrt * Ssqrt = Cov) :
+    (Real.sqrt c • Bsqrt⁻¹).PosDef ∧
+      (B * (Real.sqrt c • Bsqrt⁻¹)).trace +
+          c * (Real.sqrt c • Bsqrt⁻¹)⁻¹.trace
+        ≤ (B * Cov).trace + c * Cov⁻¹.trace := by
+  have hBs_sym : Bsqrt.IsSymm := by
+    simpa [Matrix.isHermitian_iff_isSymm] using hBs_pos.isHermitian
+  have hSs_sym : Ssqrt.IsSymm := by
+    simpa [Matrix.isHermitian_iff_isSymm] using hSs_pos.isHermitian
+  have hBs_unit : IsUnit Bsqrt.det :=
+    Matrix.isUnit_iff_isUnit_det Bsqrt |>.mp hBs_pos.isUnit
+  have hSs_unit : IsUnit Ssqrt.det :=
+    Matrix.isUnit_iff_isUnit_det Ssqrt |>.mp hSs_pos.isUnit
+  refine ⟨robust_scrubbing_isotropic_candidate_posDef Bsqrt c hc hBs_pos, ?_⟩
+  rw [robust_scrubbing_isotropic_attains B Bsqrt c hc hBs hBs_unit]
+  exact robust_scrubbing_isotropic_bound B Cov Bsqrt Ssqrt c hc.le
+    hBs_sym hBs hSs_sym hSs hSs_unit
 
 end SelectiveForgetting

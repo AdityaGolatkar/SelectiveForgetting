@@ -17,6 +17,10 @@ The proof applies the log-sum inequality (`log_sum_inequality`, Basic) for each 
 `x` over the seed index `e`, then swaps the order of summation. Only positivity of the
 seed weights is used; `∑ e, p e = 1` records that `p` is the seed distribution so that the
 mixtures are genuine distributions.
+
+The Lean statement explicitly assumes every seed weight and every reference mass are strictly
+positive. These full-support restrictions make the elementary real-valued logarithm formula
+well behaved but are stronger than the paper's unstated support conditions.
 -/
 
 /-- **Proposition 2 (Local Forgetting Bound).** `KL(∑ₑ pₑ Qₑ ‖ ∑ₑ pₑ Rₑ) ≤ ∑ₑ pₑ · KL(Qₑ ‖ Rₑ)`. -/

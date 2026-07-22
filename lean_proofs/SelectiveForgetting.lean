@@ -14,25 +14,29 @@ Lean 4 + Mathlib formalization of the self-contained mathematical results of
 > *Eternal Sunshine of the Spotless Net: Selective Forgetting in Deep Networks*,
 > CVPR 2020, arXiv:1911.04933.
 
-All five kernel results of Appendix C are fully proved and machine-checked:
+The package proves the complete finite information-theory kernel and two explicitly delimited
+linear-algebra subresults. It does not claim that every statement below is fully formalized:
 
 * Log-sum inequality (proof engine): `log_sum_inequality` — `Basic`
 * KL ≥ 0 (Gibbs): `klDiv_nonneg` — `Basic`
 * **Lemma 1** (readout DPI): `klDiv_pushforward_le` — `ReadoutContraction`
 * **Proposition 1** (information bound): `mutualInfo_le_expected_klDiv`,
-  `information_bound` — `InformationBound`
+  `markovMutualInfo_le`, `information_bound` — `InformationBound`
 * **Proposition 2** (local forgetting bound): `klDiv_mixture_le` — `LocalForgettingBound`
-* **Proposition 3** (optimal quadratic scrubbing): `quadratic_scrubbing_flow_identity`,
+* **Proposition 3, finite-time algebraic core**: `quadratic_scrubbing_flow_identity`,
   `quadratic_scrubbing_flow_identity_exp` — `QuadraticScrubbing`
-* **Proposition 4** (robust isotropic scrubbing): `robust_scrubbing_isotropic_bound`,
-  `robust_scrubbing_isotropic_optimality_condition`, `robust_scrubbing_isotropic_attains`
+* **Proposition 4, isotropic optimization only**: `robust_scrubbing_isotropic_bound`,
+  `robust_scrubbing_isotropic_optimality_condition`, `robust_scrubbing_isotropic_attains`,
+  `robust_scrubbing_isotropic_candidate_posDef`, `robust_scrubbing_isotropic_global_minimum`
   — `RobustScrubbing`
 
 The information-theoretic core (Lemma 1, Props 1–2) is built self-contained over finite types
 from a single `log_sum_inequality` (Jensen for `x ↦ x log x`), faithful to the paper's own
-discrete proofs. Props 3–4 are linear-algebra identities over `Matrix _ _ ℝ`. Two honest scope
-notes are documented in the respective modules: Prop 3 formalizes the **corrected** middle-term
-sign that the paper's *proof* derives (the printed statement has a sign typo), and Prop 4
-formalizes the exact optimization of the paper's own quadratic/Gaussian-approximate objective,
-with symmetric matrix square roots taken as (spectral-theorem-satisfiable) hypotheses.
+discrete proofs, under explicit full-support restrictions. Proposition 3 formalizes the
+**corrected** finite-time substitution identity but not the ODE derivation, induced KL-zero
+statement, or Eq. (7) limit. Proposition 4 formalizes the exact isotropic optimization of the
+paper's quadratic/Gaussian-approximate objective, proves the candidate covariance is positive
+definite, and proves global minimality over covariances represented by positive-definite square
+roots; the general non-isotropic condition remains unformalized. The catalog also records
+Corollary 1 and Example 1 as unformalized rather than omitting them.
 -/

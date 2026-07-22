@@ -15,6 +15,10 @@ latter guarantees robustness to every readout an attacker might apply.
 The pushforward of a discrete distribution `Q` along `f` is `c ↦ ∑_{x : f x = c} Q x`.
 The proof applies the log-sum inequality (`log_sum_inequality`, Basic) on each fiber
 `f⁻¹(c)` and sums over `c` (recombining the fibers with `Finset.sum_fiberwise`).
+
+The theorem uses the paper's elementary finite-sum formula under the explicit full-support
+assumption `R x > 0`. A support-aware extended-real KL would remove this restriction; the
+present statement exposes it rather than silently identifying it with the unrestricted lemma.
 -/
 
 /-- **Lemma 1.** For any readout `f`, `KL(f_* Q ‖ f_* R) ≤ KL(Q ‖ R)`, where `f_*` denotes

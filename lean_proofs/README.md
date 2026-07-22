@@ -1,15 +1,15 @@
-# Lean 4 / Mathlib formalization of the Appendix C results
+# Lean 4 / Mathlib formalization of the paper's finite mathematical kernel
 
-Machine-checked (Lean 4 + [Mathlib](https://github.com/leanprover-community/mathlib4)) proofs of the self-contained mathematical results of *Eternal Sunshine of the Spotless Net: Selective Forgetting in Deep Networks* (Golatkar, Achille, Soatto, CVPR 2020) — the four propositions and one lemma of Appendix C ("Proofs").
+Machine-checked (Lean 4 + [Mathlib](https://github.com/leanprover-community/mathlib4)) proofs associated with *Eternal Sunshine of the Spotless Net: Selective Forgetting in Deep Networks* (Golatkar, Achille, Soatto, CVPR 2020). Coverage is complete for Lemma 1 and Propositions 1–2, and deliberately partial for Propositions 3–4: the finite-time algebraic core of Proposition 3 and the isotropic optimization subclaim of Proposition 4 are proved. The exact boundaries are stated below and in `catalog.json`.
 
-Everything builds with zero `sorry`, and `#print axioms` reports only the standard classical axioms (`propext`, `Classical.choice`, `Quot.sound`) for every result. The files are:
+Everything builds with zero `sorry`, and `#print axioms` reports only the standard classical axioms (`propext`, `Classical.choice`, `Quot.sound`) for every listed Lean declaration. The files are:
 
 - `Basic.lean` — the log-sum inequality and discrete KL divergence (shared engine);
 - `ReadoutContraction.lean` — Lemma 1 (a readout can only decrease KL);
 - `LocalForgettingBound.lean` — Proposition 2 (the Local Forgetting Bound);
 - `InformationBound.lean` — Proposition 1 / Eq. (2) (the information bound);
-- `QuadraticScrubbing.lean` — Proposition 3 (optimal quadratic scrubbing);
-- `RobustScrubbing.lean` — Proposition 4 (robust isotropic scrubbing);
+- `QuadraticScrubbing.lean` — the finite-time algebraic core of Proposition 3;
+- `RobustScrubbing.lean` — the isotropic optimization subclaim of Proposition 4;
 - `SelectiveForgetting.lean` — the umbrella import.
 
 ## How to build
@@ -18,7 +18,7 @@ Requires a Lean 4 toolchain (`elan`/`lake`). Run `lake build` in this folder. Th
 
 ## What is proved
 
-The information-theoretic results (Lemma 1, Propositions 1–2) are modelled over finite types, faithful to the paper's own discrete proofs ("we will consider the random variables to be discrete"). A discrete distribution is a function $Q : \alpha \to \mathbb{R}$ with $Q \ge 0$; KL divergence is $\mathrm{KL}(Q \Vert R) = \sum_x Q(x)\, \log\!\big(Q(x)/R(x)\big)$. All three rest on a single lemma.
+The information-theoretic results (Lemma 1, Propositions 1–2) are modelled over finite types, following the paper's discrete proofs ("we will consider the random variables to be discrete"). A discrete distribution is a function $Q : \alpha \to \mathbb{R}$ with $Q \ge 0$; KL divergence is $\mathrm{KL}(Q \Vert R) = \sum_x Q(x)\, \log\!\big(Q(x)/R(x)\big)$. The Lean signatures impose full support on reference distributions and, where used, priors/channels/seed weights; these strict-positivity assumptions are stronger than the paper states and avoid extended-real zero/infinity conventions. All three results rest on one log-sum lemma.
 
 - **`Basic.lean`** — the **log-sum inequality**: for $a_i \ge 0$ and $b_i > 0$ over a finite index set,
   $$\Big(\textstyle\sum_i a_i\Big)\, \log\frac{\sum_i a_i}{\sum_i b_i} \le \sum_i a_i\, \log\frac{a_i}{b_i},$$
@@ -30,10 +30,10 @@ The information-theoretic results (Lemma 1, Propositions 1–2) are modelled ove
   $$\mathrm{KL}\Big(\textstyle\sum_e p_e Q_e \,\Big\Vert\, \sum_e p_e R_e\Big) \le \sum_e p_e\, \mathrm{KL}(Q_e \Vert R_e),$$
   the discrete analogue of the paper's $\mathbb{E}_\epsilon$ mixture, again from the log-sum inequality.
 
-- **`InformationBound.lean`** — **Proposition 1** / Eq. (2). With a prior $p_X$ and channel $p(z \mid x)$, `mutualInfo_le_expected_klDiv` proves the variational bound $I(X; Z) \le \sum_x p_X(x)\, \mathrm{KL}(p(\cdot \mid x) \Vert q)$ for **any** reference $q$ — the gap equals $\mathrm{KL}(\text{marginal} \Vert q) \ge 0$ (Gibbs). `information_bound` then bounds $I(Y; f(S(w)))$; the Data Processing Inequality $I(Y; f(S(w))) \le I(D_f; f(S(w)))$ enters as a hypothesis, exactly as the paper invokes it as a standard result.
+- **`InformationBound.lean`** — **Proposition 1** / Eq. (2). `markovMutualInfo_le` models $Y \leftarrow D_f \to Z$ by two conditionally independent finite channels and proves $I(Y;Z) \le I(D_f;Z)$ directly from the log-sum inequality. `mutualInfo_le_expected_klDiv` proves $I(D_f;Z) \le \sum_x p_X(x)\,\mathrm{KL}(p(\cdot\mid x)\Vert q)$ for any reference $q$, with gap $\mathrm{KL}(p_Z\Vert q)\ge 0$. `information_bound` composes the two proved steps; Data Processing is no longer a hypothesis.
 
-- **`QuadraticScrubbing.lean`** — **Proposition 3**. Two gradient flows from the same initialization, $w_A(t) = w^\*_A + e^{-At}(w_0 - w^\*_A)$ and $w_B(t) = w^\*_B + e^{-Bt}(w_0 - w^\*_B)$, satisfy the scrubbing identity $h(w_A(t)) = w_B(t)$. `quadratic_scrubbing_flow_identity` proves this as a linear-algebra identity whose only use of the matrix exponential is that $e^{At}$ inverts $e^{-At}$; `quadratic_scrubbing_flow_identity_exp` instantiates it with the genuine matrix exponential. The formalized map uses the middle-term sign $e^{-Bt}(d_r - d)$ that the paper's *proof* derives (the printed statement has $e^{-Bt}(d - d_r)$; see the note below). The $t \to \infty$ Newton update (Eq. (7)) is an analytic limit taken informally by the paper and is not formalized.
+- **`QuadraticScrubbing.lean`** — the **finite-time algebraic core of Proposition 3**. Assuming the two displayed closed-form paths from the same initialization, `quadratic_scrubbing_flow_identity` proves the substitution $h(w_A(t))=w_B(t)$; `quadratic_scrubbing_flow_identity_exp` instantiates the inverse factors with the genuine matrix exponential. The map uses the sign $e^{-Bt}(d_r-d)$ derived by the paper's proof, rather than the opposite sign printed in the statement. The file does not derive the paths from quadratic-loss ODEs, formalize the resulting equality of probability laws/conditional KL zero, or prove the $t\to\infty$ Newton update in Eq. (7).
 
-- **`RobustScrubbing.lean`** — **Proposition 4**, isotropic case. Under the paper's own second-order (Gaussian/quadratic) approximation, the noise covariance minimizes $\tfrac12\,\mathrm{tr}(B\Sigma) + \tfrac{c}{2}\,\mathrm{tr}(\Sigma^{-1})$ with $c = \lambda\sigma_h^2$. `robust_scrubbing_isotropic_bound` proves the **global** lower bound $2\sqrt{c}\,\mathrm{tr}(B^{1/2}) \le \mathrm{tr}(B\Sigma) + c\,\mathrm{tr}(\Sigma^{-1})$ over all PD $\Sigma$ by completing the square in the trace inner product (stronger than the paper's first-order argument); `robust_scrubbing_isotropic_attains` shows $\Sigma^\* = \sqrt{c}\,B^{-1/2}$ attains it, so it is a global minimizer; and `robust_scrubbing_isotropic_optimality_condition` verifies the paper's condition $\Sigma^\* B \Sigma^\* = c\,I$ (i.e. $\Sigma B \Sigma = \lambda\Sigma_h$ with $\Sigma_h = \sigma_h^2 I$). The symmetric square roots $B^{1/2}, \Sigma^{1/2}$ are taken as hypotheses; every real PD matrix has such a root by the spectral theorem.
+- **`RobustScrubbing.lean`** — **Proposition 4, isotropic case only**. Under the paper's second-order Gaussian/quadratic approximation, the reduced objective is $\tfrac12\,\mathrm{tr}(B\Sigma)+\tfrac{c}{2}\,\mathrm{tr}(\Sigma^{-1})$, with $c=\lambda\sigma_h^2>0$. The proof completes the square in the trace inner product. `robust_scrubbing_isotropic_candidate_posDef` proves that $\Sigma^\*=\sqrt c\,B^{-1/2}$ is positive definite when $B^{1/2}$ is supplied as a positive-definite root, and `robust_scrubbing_isotropic_global_minimum` proves $g(\Sigma^\*)\le g(\Sigma)$ for every competitor supplied with a positive-definite square-root witness. The remaining declarations expose the lower bound, attainment, and $\Sigma^\*B\Sigma^\*=cI$. The general non-isotropic condition $\Sigma B\Sigma=\lambda\Sigma_h$ is not formalized.
 
-The `catalog.json` in this folder maps each result to the paper's statement, equations, and proof lines.
+The `catalog.json` maps the proved declarations to the paper and also records five unformalized claims explicitly: Proposition 3's conditional-KL consequence and Eq. (7) limit, the general non-isotropic part of Proposition 4, Example 1's infinite-noise limit, and Corollary 1's Gaussian specialization.
