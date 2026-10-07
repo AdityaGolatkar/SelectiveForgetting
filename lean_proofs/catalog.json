@@ -1,0 +1,498 @@
+{
+  "schema_version": "1.0",
+  "paper": {
+    "title": "Eternal Sunshine of the Spotless Net: Selective Forgetting in Deep Networks",
+    "authors": [
+      "Aditya Golatkar",
+      "Alessandro Achille",
+      "Stefano Soatto"
+    ],
+    "affiliation": "University of California, Los Angeles",
+    "venue": "CVPR 2020",
+    "arxiv_id": "1911.04933",
+    "version": "v5",
+    "arxiv_abs_url": "https://arxiv.org/abs/1911.04933v5",
+    "source_of_truth": "arXiv LaTeX e-print (arxiv.org/e-print/1911.04933); math cataloged from main.tex; the rendered PDF was used to fix equation numbers and the appendix letter (the proofs are Appendix C).",
+    "scope_note": "This is a methods paper. The catalog records the four propositions and one lemma proved in Appendix C, together with Example 1 and Corollary 1 from the main text. The Lean development proves the three finite information-theoretic results, including the Data Processing step of Proposition 1; the finite-time algebraic core of Proposition 3; and the isotropic global-minimization specialization of Proposition 4. Proposition 3's induced conditional-KL conclusion and asymptotic Newton limit, Proposition 4's general non-isotropic optimization claim, Corollary 1, and Example 1's Gaussian limit are recorded explicitly but are not formalized. The Fisher-information approximation of the Hessian (Sec. 3.3, Eq. (8)), the deep-network scrubbing algorithm, and the variational construction of Sec. 4 are design or approximation choices rather than theorem statements."
+  },
+  "items": [
+    {
+      "id": "lemma1_readout_dpi",
+      "label": "Lemma 1",
+      "name": "KL divergence between weight distributions contracts under any readout function",
+      "kind": "lemma",
+      "references": {
+        "human": {
+          "statement": "Sec. 2 'Definition and Testing of Forgetting', Lemma 1",
+          "proof": "Appendix C 'Proofs', Lemma 1",
+          "pdf_page_statement": 3,
+          "pdf_page_proof": 12,
+          "equations": [
+            "(9)",
+            "(10)"
+          ]
+        },
+        "machine": {
+          "source_files": [
+            "main.tex"
+          ],
+          "statement_lines": "main.tex L183-189",
+          "proof_lines": "main.tex L689-722"
+        }
+      },
+      "background_notation": {
+        "w": "the weights of a trained model",
+        "S(w)": "the (stochastic) scrubbing function applied to the weights",
+        "S_0(w)": "the certificate scrubbing function, not depending on the forgetting set",
+        "D": "the full training set; D_r its retained part",
+        "f": "an arbitrary readout function applied to the weights",
+        "P(S(w)|D)": "the distribution of scrubbed weights after training on D",
+        "KL(p||q)": "Kullback-Leibler divergence, sum_x p(x) log(p(x)/q(x))"
+      },
+      "hypotheses": [
+        "f is an arbitrary (measurable) function of the weights.",
+        "The proof is given for discrete random variables (stated in the paper)."
+      ],
+      "statement_informal": "Applying a readout function f to the weights can only decrease the KL divergence between the scrubbed distribution and its certificate. Hence controlling the KL on the full weights guarantees robustness against every readout an attacker might use.",
+      "statement_formal": "For any function f, KL( P(f(S(w))|D) || P(f(S_0(w))|D_r) ) <= KL( P(S(w)|D) || P(S_0(w)|D_r) ).",
+      "proof_as_in_paper": "Write Q(w)=P(S(w)|D) and R(w)=P(S_0(w)|D_r) and prove KL(Q(f(w))||R(f(w))) <= KL(Q(w)||R(w)). Let W_c = { w : f(w)=c }, so Q(f(w)=c)=sum_{w in W_c} Q(w) and R(f(w)=c)=sum_{w in W_c} R(w). Then KL(Q(f(w))||R(f(w))) = sum_c Q(f(w)=c) log [ Q(f(w)=c) / R(f(w)=c) ] = sum_c ( sum_{w in W_c} Q(w) ) log [ ( sum_{w in W_c} Q(w) ) / ( sum_{w in W_c} R(w) ) ]  (Eq. (9)), while KL(Q(w)||R(w)) = sum_c sum_{w in W_c} Q(w) log ( Q(w)/R(w) )  (Eq. (10)). By the log-sum inequality, for each c, ( sum_{w in W_c} Q(w) ) log [ ( sum_{w in W_c} Q(w) ) / ( sum_{w in W_c} R(w) ) ] <= sum_{w in W_c} Q(w) log ( Q(w)/R(w) ). Summing over all c concludes the proof.",
+      "proof_technique": "Log-sum inequality applied fiberwise over the level sets of f, then summed.",
+      "proof_completeness": "self-contained given the log-sum inequality (used as a standard result).",
+      "external_dependencies": [
+        "Log-sum inequality: for nonnegative a_i and positive b_i, ( sum_i a_i ) log ( ( sum_i a_i ) / ( sum_i b_i ) ) <= sum_i a_i log ( a_i / b_i ). Consequence of the convexity of t |-> t log t."
+      ],
+      "depends_on": [],
+      "known_issues_in_paper": [
+        "The proof writes R(w) = P(S_0(w)|D_{-k}), using D_{-k} (the data without class k) for the retained set that the statement calls D_r; D_{-k} is a special case of D_r. Notation only.",
+        "In Eq. (10) the rewrite of KL(Q||R) is printed sum_c sum_{w in W_c} log(Q(w)/R(w)), dropping the leading weight Q(w); the correct expression, used in the proof and needed for the log-sum step, is sum_c sum_{w in W_c} Q(w) log(Q(w)/R(w))."
+      ],
+      "formalization_notes": "Model a discrete distribution over a Fintype alpha as Q : alpha -> R with Q nonnegative. Define klDiv Q R = sum_x Q x * log (Q x / R x). The readout f : alpha -> beta pushes Q forward to Qf c = sum_{x, f x = c} Q x. The statement is klDiv Qf Rf <= klDiv Q R, obtained by proving the log-sum inequality as a helper lemma (from convexity of t log t) and summing it over the fibers of f.",
+      "lean": {
+        "status": "proved",
+        "files": [
+          "ReadoutContraction.lean",
+          "Basic.lean"
+        ],
+        "declarations": [
+          "klDiv_pushforward_le"
+        ],
+        "added_hypotheses": [
+          "The finite real-valued KL model assumes R(x) > 0 at every point. The paper does not state full support; the restriction avoids extended-real zero/infinity conventions."
+        ],
+        "route_note": "Proved fiberwise from the self-contained log_sum_inequality (Basic.lean), then recombined with Finset.sum_fiberwise, faithful to the paper's per-level-set argument."
+      }
+    },
+    {
+      "id": "prop2_local_forgetting_bound",
+      "label": "Proposition 2 (Local Forgetting Bound)",
+      "name": "KL of the seed-averaged distributions is bounded by the seed-averaged KL",
+      "kind": "proposition",
+      "references": {
+        "human": {
+          "statement": "Sec. 2.1 'Stability and Local Forgetting Bound', Proposition 2",
+          "proof": "Appendix C 'Proofs', Proposition 2",
+          "pdf_page_statement": 4,
+          "pdf_page_proof": 12
+        },
+        "machine": {
+          "source_files": [
+            "main.tex"
+          ],
+          "statement_lines": "main.tex L217-224",
+          "proof_lines": "main.tex L724-745"
+        }
+      },
+      "background_notation": {
+        "epsilon": "the random seed of the training algorithm A(D, epsilon)",
+        "P(S(w)|D, epsilon)": "the scrubbed-weight distribution for a fixed seed",
+        "P(S(w)|D)": "the seed-averaged distribution, E_epsilon[ P(S(w)|D, epsilon) ]"
+      },
+      "hypotheses": [
+        "The training algorithm A(D, epsilon) is deterministic given the data and the seed epsilon ~ P(epsilon).",
+        "P(S(w)|D) = E_epsilon[ P(S(w)|D, epsilon) ] (and likewise for S_0, D_r).",
+        "The proof is given for discrete random variables."
+      ],
+      "statement_informal": "The KL divergence between the two seed-averaged (mixture) distributions is no larger than the average, over seeds, of the per-seed KL divergences. This lets one bound a hard-to-estimate mixture KL by an average of simple per-seed KLs.",
+      "statement_formal": "With Q(w) = E_epsilon[ Q(w|epsilon) ] and R(w) = E_epsilon[ R(w|epsilon) ], KL( P(S(w)|D) || P(S_0(w)|D_r) ) <= E_epsilon[ KL( P(S(w)|D, epsilon) || P(S_0(w)|D_r, epsilon) ) ].",
+      "proof_as_in_paper": "Write Q(w)=P(S(w)|D), R(w)=P(S_0(w)|D_r). Then KL(Q(w)||R(w)) = integral Q(w) log (Q(w)/R(w)) dw = integral E_epsilon[Q(w|epsilon)] log ( E_epsilon[Q(w|epsilon)] / E_epsilon[R(w|epsilon)] ) dw <= integral E_epsilon[ Q(w|epsilon) log ( Q(w|epsilon)/R(w|epsilon) ) ] dw = E_epsilon[ integral Q(w|epsilon) log ( Q(w|epsilon)/R(w|epsilon) ) dw ] = E_epsilon[ KL(Q(w|epsilon)||R(w|epsilon)) ], where the inequality is the log-sum inequality (convexity) applied for each w over the seed distribution.",
+      "proof_technique": "Log-sum inequality applied per outcome over the seed index (joint convexity of KL divergence).",
+      "proof_completeness": "self-contained given the log-sum inequality.",
+      "external_dependencies": [
+        "Log-sum inequality (as in Lemma 1)."
+      ],
+      "depends_on": [],
+      "known_issues_in_paper": [
+        "In the transcribed proof R(w) is written as P(S(w)|D_r); it denotes the certificate P(S_0(w)|D_r) as in the statement. A couple of the intermediate log-ratios write P(w|epsilon) for R(w|epsilon). Notation only."
+      ],
+      "formalization_notes": "Model the seed as a finite index type sigma with a probability weight p : sigma -> R (nonnegative, summing to one). Given families Q, R : sigma -> alpha -> R of discrete distributions, the mixtures are Qbar x = sum_e p e * Q e x. The statement is klDiv Qbar Rbar <= sum_e p e * klDiv (Q e) (R e), obtained from the same log-sum inequality helper applied for each x over the seed index e.",
+      "lean": {
+        "status": "proved",
+        "files": [
+          "LocalForgettingBound.lean",
+          "Basic.lean"
+        ],
+        "declarations": [
+          "klDiv_mixture_le"
+        ],
+        "added_hypotheses": [
+          "Every seed weight p(e) is strictly positive, rather than merely nonnegative.",
+          "Every reference mass R(e,x) is strictly positive. These are full-support restrictions of the elementary real-valued KL model and are not stated by the paper."
+        ],
+        "route_note": "Formalized as the discrete mixture over a finite seed distribution p (the discrete analogue of the paper's E_epsilon, consistent with the paper's own 'consider the random variables to be discrete'); the log-sum inequality is applied per outcome over the seed index, then the sums are swapped."
+      }
+    },
+    {
+      "id": "prop1_information_bound",
+      "name": "Bound on the Shannon information a readout extracts about the forgetting cohort",
+      "label": "Proposition 1 / Eq. (2)",
+      "kind": "proposition",
+      "references": {
+        "human": {
+          "statement": "Sec. 2 'Definition and Testing of Forgetting', Proposition 1, Eq. (2)",
+          "proof": "Appendix C 'Proofs', Proposition 1",
+          "pdf_page_statement": 3,
+          "pdf_page_proof": 12,
+          "equations": [
+            "(2)"
+          ]
+        },
+        "machine": {
+          "source_files": [
+            "main.tex"
+          ],
+          "statement_lines": "main.tex L168-173",
+          "proof_lines": "main.tex L655-687"
+        }
+      },
+      "background_notation": {
+        "D_f": "the forgetting cohort, treated here as a random variable",
+        "Y": "an attribute of interest that depends on D_f",
+        "I(X; Z)": "Shannon mutual information, E_x[ KL( p(z|x) || p(z) ) ]",
+        "f(S(w))": "a readout applied to the scrubbed weights"
+      },
+      "hypotheses": [
+        "The forgetting set D_f is a random variable; Y depends on D_f.",
+        "The retained set D_r is fixed (deterministic).",
+        "Markov chain Y <- D_f -> w -> S(w) -> f(S(w)); in particular Y and f(S(w)) are conditionally independent given D_f.",
+        "The proof is given for discrete random variables."
+      ],
+      "statement_informal": "The amount of Shannon information that the readout of the scrubbed weights carries about any attribute Y of the forgetting cohort is upper bounded by the expected KL forgetting quantity. Thus driving the KL to zero drives to zero the information any attribute leaks.",
+      "statement_formal": "I( Y; f(S(w)) ) <= E_{D_f}[ KL( P(f(S(w))|D) || P(f(S_0(w))|D_r) ) ].",
+      "proof_as_in_paper": "From the Markov chain Y <- D_f -> w -> S(w) -> f(S(w)), the Data Processing Inequality gives I(Y; f(S(w))) <= I(D_f; f(S(w))). Bound the right-hand side: I(D_f; f(S(w))) = E_{D_f}[ KL( p(f(S(w))|D_f ∪ D_r) || p(f(S(w))) ) ] = E_{D_f} E_{p(f(S(w))|D_f ∪ D_r)}[ log ( p(f(S(w))|D_f ∪ D_r) / p(f(S_0(w))|D_r) ) + log ( p(f(S_0(w))|D_r) / p(f(S(w))) ) ] = E_{D_f}[ KL( p(f(S(w))|D_f ∪ D_r) || p(f(S_0(w))|D_r) ) ] - KL( p(f(S_0(w))) || p(f(S(w))|D_r) ) <= E_{D_f}[ KL( p(f(S(w))|D_f ∪ D_r) || p(f(S_0(w))|D_r) ) ], the last inequality because KL divergence is nonnegative.",
+      "proof_technique": "Data Processing Inequality for mutual information over the Markov chain, then a variational upper bound on mutual information (add and subtract a reference distribution and drop a nonnegative KL term).",
+      "proof_completeness": "self-contained given the Data Processing Inequality (used as a standard result) and the nonnegativity of KL.",
+      "external_dependencies": [
+        "Data Processing Inequality for Shannon mutual information over a Markov chain.",
+        "Nonnegativity of KL divergence."
+      ],
+      "depends_on": [],
+      "known_issues_in_paper": [
+        "The final decomposition prints a KL term whose arguments do not express the standard variational identity. With p_Z(z) = sum_x p(x)p(z|x) the marginal readout distribution and q(z) = P(f(S_0(w))|D_r), the exact identity is I(X;Z) = E_x[KL(p(z|x)||q)] - KL(p_Z||q). The desired upper bound follows by subtracting this nonnegative KL."
+      ],
+      "formalization_notes": "Discrete finite model. Mutual information I(X; Z) = sum_{x} pX x * klDiv (pZgivenX x) pZ. The variational-bound half follows from nonnegativity of klDiv (any reference q gives I(X;Z) <= E_x[ klDiv (p(z|x)) q ]). The Data Processing Inequality half is derived from the same log-sum-inequality machinery / chain rule of mutual information (or Mathlib's information-theory API if it provides mutual info and DPI). Decide the exact route when proving.",
+      "lean": {
+        "status": "proved",
+        "files": [
+          "InformationBound.lean",
+          "Basic.lean"
+        ],
+        "declarations": [
+          "markovMutualInfo_le",
+          "mutualInfo_le_expected_klDiv",
+          "information_bound"
+        ],
+        "added_hypotheses": [
+          "The finite model assumes strictly positive cohort prior p(D_f), attribute channel p(Y|D_f), readout channel p(Z|D_f), and reference distribution q. These full-support restrictions are stronger than the paper's unstated support conditions and avoid extended-real KL conventions.",
+          "The variational bound is proved for an arbitrary reference distribution q; the paper's q = P(f(S_0(w))|D_r) is one instance."
+        ],
+        "route_note": "The Markov chain Y <- D_f -> Z is modeled by two conditionally independent finite channels given D_f. markovMutualInfo_le proves Data Processing directly from the log-sum inequality. The variational step then proves I(D_f;Z) <= E_x[KL(p(z|x)||q)] with gap exactly KL(p_Z||q) >= 0."
+      }
+    },
+    {
+      "id": "prop3_quadratic_scrubbing",
+      "label": "Proposition 3 (Optimal Quadratic Scrubbing)",
+      "name": "Finite-time algebraic core: a deterministic map sends the D-trained closed-form flow onto the D_r-trained flow",
+      "kind": "proposition",
+      "references": {
+        "human": {
+          "statement": "Sec. 3 'Optimal Quadratic Scrubbing Algorithm', Proposition 3",
+          "proof": "Appendix C 'Proofs', Proposition 3",
+          "pdf_page_statement": 5,
+          "pdf_page_proof": 13,
+          "equations": [
+            "(6)"
+          ]
+        },
+        "machine": {
+          "source_files": [
+            "main.tex"
+          ],
+          "statement_lines": "main.tex L257-272",
+          "proof_lines": "main.tex L747-780"
+        }
+      },
+      "background_notation": {
+        "L_D, L_{D_r}": "the (quadratic) losses on the full and retained sets",
+        "A": "the Hessian of L_D; B: the Hessian of L_{D_r}",
+        "w_A^*, w_B^*": "the minimizers of L_D and L_{D_r}",
+        "A_t(D, epsilon)": "the gradient-flow training path at time t, from random initialization w_0 = epsilon",
+        "d": "w_A(t) - w_A^* = A^{-1} grad L_D(w_A(t)); d_r: w_A(t) - w_B^* = B^{-1} grad L_{D_r}(w_A(t))",
+        "h(w)": "the deterministic scrubbing map"
+      },
+      "hypotheses": [
+        "L_D(w) = (1/2)(w - w_A^*)^T A (w - w_A^*) and L_{D_r}(w) = (1/2)(w - w_B^*)^T B (w - w_B^*) are quadratic, with A, B symmetric positive definite.",
+        "Training is the gradient flow of the loss from initialization w_0, giving the closed forms w_A(t) = w_A^* + exp(-At)(w_0 - w_A^*) and w_B(t) = w_B^* + exp(-Bt)(w_0 - w_B^*) (the same w_0 for both)."
+      ],
+      "statement_informal": "Under the paper's closed-form expressions for two quadratic gradient flows, eliminating their shared initialization gives a deterministic finite-time map h that carries the full-data path onto the retain-data path. The separate asymptotic Newton-update consequence is cataloged as eq7_newton_update_limit.",
+      "statement_formal": "Assume w_A(t) = w_A^* + exp(-At)(w_0-w_A^*) and w_B(t) = w_B^* + exp(-Bt)(w_0-w_B^*). Let d = w_A(t)-w_A^* and d_r = w_A(t)-w_B^*. With the corrected map h(w) = w + exp(-Bt)exp(At)d + exp(-Bt)(d_r-d) - d_r, h(w_A(t)) = w_B(t) for every shared initialization w_0 and finite time t.",
+      "proof_as_in_paper": "With L_D, L_{D_r} quadratic, the gradient flow paths solve wdot = -A(w - w_A^*) and wdot = -B(w - w_B^*), giving w_A(t) = w_A^* + exp(-At)(w_0 - w_A^*) and w_B(t) = w_B^* + exp(-Bt)(w_0 - w_B^*). From the first, w_0 = exp(At)(w_A(t) - w_A^*) + w_A^* = exp(At) d_A + w_A^*, with d_A := w_A(t) - w_A^* = A^{-1} grad L_D(w_A(t)). Substituting into the second and writing d_B := w_A(t) - w_B^* = B^{-1} grad L_{D_r}(w_A(t)): w_B(t) = exp(-Bt) exp(At) d_A + exp(-Bt)(w_A^* - w_B^*) + w_B^* = w_A(t) + exp(-Bt) exp(At) d_A + exp(-Bt)(d_B - d_A) - d_B. Identifying d = d_A, d_r = d_B gives h(w_A(t)) = w_B(t).",
+      "proof_technique": "Solve the two linear (quadratic-loss) gradient flows in closed form and eliminate the shared initialization w_0; the only property of the matrix exponential used is that exp(At) is the inverse of exp(-At).",
+      "proof_completeness": "self-contained given the asserted closed-form solutions of the two linear gradient-flow ODEs.",
+      "external_dependencies": [
+        "Closed-form solution of the linear ODE wdot = -M(w - w^*), namely w(t) = w^* + exp(-Mt)(w_0 - w^*), and exp(Mt) exp(-Mt) = I."
+      ],
+      "depends_on": [],
+      "known_issues_in_paper": [
+        "In the stated map h (main text, appendix, and Eq. (6)) the middle term reads exp(-Bt)(d - d_r); the proof's own final line derives exp(-Bt)(d_r - d). The identity h(A_t(D)) = A_t(D_r) holds with the sign exp(-Bt)(d_r - d); with the printed sign it holds only when d = d_r. (The t -> infinity Newton update Eq. (7) is unaffected, since this term vanishes.)",
+        "The appendix restatement of h drops the leading 'w +' present in the main-text statement and in Eq. (6); the proof confirms the 'w' term is present.",
+        "The proof writes the gradient-flow ODE as wdot = A(w - w^*); the gradient flow is wdot = -grad L = -A(w - w^*). The stated solution exp(-At) already carries the sign; only the ODE line omits it.",
+        "The proof writes L_{D_f}(w) = (1/2)(w - w_B^*)^T B (w - w_B^*) with B = Hessian of L_{D_r}; since B is the retained-set Hessian this quadratic is L_{D_r}, not L_{D_f}."
+      ],
+      "formalization_notes": "Formalize the pure algebraic identity relating the two closed-form flows, using the corrected middle-term sign exp(-Bt)(d_r - d). The matrix exponential enters only through invertibility (exp(At) exp(-At) = I), so exp(-At) can either be Matrix.exp (faithful to the statement) used via its inverse, or an abstract invertible matrix. Define A_t(D, epsilon) and A_t(D_r, epsilon) by the paper's own closed forms (the paper states 'the training path is the solution ... which is given respectively by ...').",
+      "lean": {
+        "status": "proved",
+        "files": [
+          "QuadraticScrubbing.lean"
+        ],
+        "declarations": [
+          "quadratic_scrubbing_flow_identity",
+          "quadratic_scrubbing_flow_identity_exp"
+        ],
+        "added_hypotheses": [
+          "The two gradient-flow paths are given by their closed forms (the paper's own 'which is given respectively by' step), not re-derived from an ODE-existence theorem.",
+          "e^{At} inverts e^{-At} (FA * EA = 1); in quadratic_scrubbing_flow_identity_exp this is discharged from the genuine matrix exponential via exp(MA)*exp(-MA) = exp(0) = 1.",
+          "The formalized map uses the corrected middle-term sign e^{-Bt}(d_r - d) that the paper's proof derives (see known_issues_in_paper)."
+        ],
+        "route_note": "Proves exactly the finite-time algebraic substitution h(w_A(t)) = w_B(t), with the corrected sign. It does not derive the closed forms from the quadratic losses, formalize the induced equality of probability laws and KL=0, or prove the t -> infinity Newton limit; those omissions are why this entry is described as the finite-time algebraic core rather than the full proposition."
+      }
+    },
+    {
+      "id": "prop4_robust_scrubbing_general",
+      "label": "Proposition 4 (Robust Scrubbing Procedure)",
+      "name": "Optimal noise covariance minimizing the (approximated) Forgetting Lagrangian",
+      "kind": "proposition",
+      "references": {
+        "human": {
+          "statement": "Sec. 3.1 'Robust Scrubbing', Proposition 4",
+          "proof": "Appendix C 'Proofs', Proposition 4",
+          "pdf_page_statement": 5,
+          "pdf_page_proof": 13
+        },
+        "machine": {
+          "source_files": [
+            "main.tex"
+          ],
+          "statement_lines": "main.tex L284-288",
+          "proof_lines": "main.tex L782-819"
+        }
+      },
+      "background_notation": {
+        "h(w)": "a deterministic scrubbing map; w' the target weights trained on D_r",
+        "Sigma_h": "covariance of the residual error h(w) - w' ~ N(0, Sigma_h)",
+        "Sigma": "the covariance of the added noise n ~ N(0, Sigma)",
+        "B": "the Hessian of L_{D_r} at the scrubbed weights, symmetric positive definite",
+        "lambda": "the positive trade-off weight of the Forgetting Lagrangian",
+        "sigma_h^2": "the isotropic residual variance when Sigma_h = sigma_h^2 I"
+      },
+      "hypotheses": [
+        "h(w) - w' ~ N(0, Sigma_h) (normally distributed residual error).",
+        "L_{D_r}(w) is (locally) quadratic around h(w), with Hessian B symmetric positive definite; the loss is replaced by its second-order approximation (the paper's stated approximation, dropping o(n^2)).",
+        "The scrubbing has the form S(w) = h(w) + n with n ~ N(0, Sigma), Sigma symmetric positive definite."
+      ],
+      "statement_informal": "Among noise covariances Sigma, the one that minimizes the (second-order approximated) Forgetting Lagrangian solves Sigma B Sigma = lambda Sigma_h. When the residual error is isotropic, Sigma_h = sigma_h^2 I, the optimum is Sigma = sqrt(lambda sigma_h^2) B^{-1/2}.",
+      "statement_formal": "Under the stated Gaussian/quadratic approximation the Forgetting Lagrangian reduces to L(Sigma) = L_{D_r}(h(w)) + (1/2) tr(B Sigma) + (lambda/2) tr(Sigma^{-1} Sigma_h). Its minimizer over symmetric positive definite Sigma satisfies Sigma B Sigma = lambda Sigma_h. In the isotropic case Sigma_h = sigma_h^2 I the minimizer is Sigma = sqrt(lambda sigma_h^2) B^{-1/2}.",
+      "proof_as_in_paper": "Second-order expansion of the retain loss: E_{n ~ N(0, Sigma)}[ L_{D_r}(h(w) + n) ] = E_n[ L_{D_r}(h(w)) + grad L_{D_r}(h(w))^T Sigma^{1/2} n + (1/2)(Sigma^{1/2} n)^T B (Sigma^{1/2} n) + o(n^2) ] ~= L_{D_r}(h(w)) + (1/2) E_n[ (Sigma^{1/2} n)^T B (Sigma^{1/2} n) ] = L_{D_r}(h(w)) + (1/2) tr(B Sigma) (the linear term vanishes since E[n] = 0). For the KL term, with S_0(w) = w + n', n' ~ N(0, Sigma), so P(S_0(w)|D_r, epsilon) ~ N(w, Sigma): E_epsilon[ KL( P(S(w)|D, epsilon) || P(S_0(w)|D_r, epsilon) ) ] = (1/2) E_epsilon[ (h(w) - w')^T Sigma^{-1} (h(w) - w') ] = (1/2) tr(Sigma^{-1} Sigma_h), using h(w) - w' ~ N(0, Sigma_h). Combining, L = L_{D_r}(h(w)) + (1/2) tr(B Sigma) + (1/2) tr(Sigma^{-1} Sigma_h). Setting grad_Sigma L = 0 gives the optimality condition Sigma B Sigma = lambda Sigma_h; if Sigma_h = sigma_h^2 I this simplifies to Sigma = sqrt(lambda sigma_h^2) B^{-1/2}.",
+      "proof_technique": "Gaussian second-order approximation of the loss (E[n^T M n] = tr(M Sigma)), then minimize a trace objective in Sigma via a first-order stationarity condition.",
+      "proof_completeness": "self-contained modulo the stated second-order (Gaussian/quadratic) approximation; the optimization of the resulting approximated Lagrangian is exact.",
+      "external_dependencies": [
+        "Gaussian second-moment identity E_{n ~ N(0, Sigma)}[ n^T M n ] = tr(M Sigma).",
+        "Matrix-derivative identities grad_Sigma tr(B Sigma) = B and grad_Sigma tr(Sigma^{-1} Sigma_h) = -Sigma^{-1} Sigma_h Sigma^{-1} (used by the paper's first-order condition)."
+      ],
+      "depends_on": [],
+      "known_issues_in_paper": [
+        "In the KL-term line the second factor is printed (h(w) - h(w')); it should be (h(w) - w') for the expression to equal (1/2) tr(Sigma^{-1} Sigma_h) via h(w) - w' ~ N(0, Sigma_h).",
+        "The statement writes B = Hessian of L_{D_r}(k); the argument should be w (or h(w)), as in the main text. k is the class label."
+      ],
+      "formalization_notes": "The general non-isotropic optimization theorem is not formalized. The Lean development proves the isotropic specialization separately as prop4_robust_scrubbing_isotropic. The non-isotropic case requires constructing the positive-definite solution of Sigma B Sigma = lambda Sigma_h (equivalently a matrix geometric mean) and proving its global minimality for the reduced trace objective; the isotropic completing-the-square argument does not directly cover non-commuting Sigma_h."
+    },
+    {
+      "id": "prop4_robust_scrubbing_isotropic",
+      "label": "Proposition 4, isotropic specialization",
+      "name": "Global optimum of the reduced robust-scrubbing objective for isotropic residual error",
+      "kind": "derived-property",
+      "kind_note": "The 'in particular' isotropic specialization within Proposition 4.",
+      "references": {
+        "human": {
+          "statement": "Sec. 3.1 'Robust Scrubbing', Proposition 4, isotropic case",
+          "proof": "Appendix C 'Proofs', Proposition 4, final paragraph",
+          "pdf_page_statement": 5,
+          "pdf_page_proof": 13
+        },
+        "machine": {
+          "source_files": ["main.tex"],
+          "statement_lines": "main.tex L284-288",
+          "proof_lines": "main.tex L812-819"
+        }
+      },
+      "background_notation": {
+        "B": "the symmetric positive-definite Hessian of the retained-data loss",
+        "Sigma": "the positive-definite covariance of the added scrubbing noise",
+        "Sigma_h": "the residual-error covariance, here sigma_h^2 I",
+        "c": "lambda sigma_h^2, assumed positive"
+      },
+      "hypotheses": [
+        "The Gaussian/quadratic approximation has reduced the covariance-dependent objective to (1/2)tr(B Sigma) + (c/2)tr(Sigma^{-1}).",
+        "B and Sigma are positive definite and c = lambda sigma_h^2 > 0.",
+        "Positive-definite square roots of B and each competitor Sigma are supplied explicitly."
+      ],
+      "statement_informal": "For isotropic residual covariance, the candidate Sigma* = sqrt(c) B^{-1/2} is an admissible positive-definite covariance and globally minimizes the reduced trace objective over positive-definite covariances equipped with positive-definite square-root witnesses.",
+      "statement_formal": "Let B = Bsqrt^2 and Sigma = Ssqrt^2 with Bsqrt and Ssqrt positive definite, and let c > 0. Then Sigma* = sqrt(c) Bsqrt^{-1} is positive definite and tr(B Sigma*) + c tr(Sigma*^{-1}) <= tr(B Sigma) + c tr(Sigma^{-1}). It also satisfies Sigma* B Sigma* = c I.",
+      "proof_as_in_paper": "After deriving the stationarity condition Sigma B Sigma = lambda Sigma_h, the paper specializes to Sigma_h = sigma_h^2 I and states Sigma = sqrt(lambda sigma_h^2) B^{-1/2}. The paper does not separately prove positive-definite admissibility or global minimality of this stationary candidate.",
+      "proof_technique": "Lean completes the square in the Frobenius trace inner product, proves a universal lower bound, proves equality at the candidate, and proves candidate positive definiteness from a positive-definite Hessian square root.",
+      "proof_completeness": "The paper states the isotropic solution after its first-order calculation; the Lean proof supplies a global-minimum argument for the exact reduced objective.",
+      "external_dependencies": [],
+      "depends_on": ["prop4_robust_scrubbing_general"],
+      "known_issues_in_paper": [],
+      "formalization_notes": "The optimization theorem uses explicit positive-definite square-root witnesses rather than arbitrary symmetric square roots. This excludes the negative-root branch and makes candidate admissibility a proved conclusion.",
+      "lean": {
+        "status": "proved",
+        "files": ["RobustScrubbing.lean"],
+        "declarations": [
+          "robust_scrubbing_isotropic_bound",
+          "robust_scrubbing_isotropic_optimality_condition",
+          "robust_scrubbing_isotropic_attains",
+          "robust_scrubbing_isotropic_candidate_posDef",
+          "robust_scrubbing_isotropic_global_minimum"
+        ],
+        "added_hypotheses": [
+          "The second-order Gaussian/quadratic approximation is taken as the reduced trace objective rather than re-derived.",
+          "Only the paper's isotropic case Sigma_h = sigma_h^2 I is formalized.",
+          "Positive-definite square roots Bsqrt and Ssqrt are supplied as witnesses; their existence for positive-definite real matrices is the spectral-theorem step not constructed in this file."
+        ],
+        "route_note": "Completing the square proves global minimality, rather than only the paper's first-order stationarity condition. The packaged theorem proves both Sigma*.PosDef and g(Sigma*) <= g(Sigma) for every competitor represented by a positive-definite square root."
+      }
+    },
+    {
+      "id": "eq7_newton_update_limit",
+      "label": "Eq. (7), Newton-update limit",
+      "name": "Asymptotic Newton update obtained from quadratic scrubbing",
+      "kind": "derived-property",
+      "references": {
+        "human": {
+          "statement": "Sec. 3 'Optimal Quadratic Scrubbing Algorithm', Eq. (7)",
+          "pdf_page_statement": 5,
+          "equations": ["(7)"]
+        },
+        "machine": {
+          "source_files": ["main.tex"],
+          "statement_lines": "main.tex L270-272"
+        }
+      },
+      "hypotheses": [
+        "The hypotheses and corrected finite-time map of Proposition 3.",
+        "The retained-data quadratic gradient flow converges so that exp(-Bt) tends to zero as t tends to infinity."
+      ],
+      "statement_informal": "After the quadratic optimization converges, the finite-time scrubbing map reduces to one Newton step on the retained-data loss.",
+      "statement_formal": "As t -> infinity, S_t(w) -> S_infinity(w) = w - B^{-1} grad L_{D_r}(w).",
+      "proof_as_in_paper": "Immediately after Proposition 3 the paper states that when t tends to infinity, after the optimization algorithm has converged, the map reduces to S_infinity(w) = w - B^{-1} grad L_{D_r}(w). No separate convergence argument is given.",
+      "proof_technique": "Take the limit in the corrected finite-time formula using decay of the stable matrix exponential.",
+      "proof_completeness": "asserted, not derived",
+      "depends_on": ["prop3_quadratic_scrubbing"],
+      "formalization_notes": "Not formalized. The existing Lean theorem establishes only the finite-time algebraic identity and does not prove the analytic decay of the matrix exponential or the ODE-to-closed-form bridge needed for this limit."
+    },
+    {
+      "id": "prop3_conditional_kl_zero",
+      "label": "Proposition 3, conditional forgetting consequence",
+      "name": "Exact flow matching makes the fixed-seed conditional KL divergence zero",
+      "kind": "derived-property",
+      "references": {
+        "human": {
+          "statement": "Sec. 3 'Optimal Quadratic Scrubbing Algorithm', consequence after Proposition 3",
+          "pdf_page_statement": 5
+        },
+        "machine": {
+          "source_files": ["main.tex"],
+          "statement_lines": "main.tex L266-269"
+        }
+      },
+      "hypotheses": [
+        "The corrected finite-time map satisfies h(A_t(D,epsilon)) = A_t(D_r,epsilon) for every fixed initialization epsilon.",
+        "The two fixed-seed conditional laws are the laws induced by these equal random variables."
+      ],
+      "statement_informal": "Exact matching of the two finite-time paths makes the scrubbed fixed-seed law equal to the retained-data law, so their conditional KL divergence is zero.",
+      "statement_formal": "KL(P(h(A_t(D,epsilon))|D,epsilon)||P(A_t(D_r,epsilon)|D_r,epsilon)) = 0.",
+      "proof_as_in_paper": "After stating h(A_t(D,epsilon)) = A_t(D_r,epsilon) for every initialization and time, the paper says that S(w)=h(w) therefore scrubs all information in D_f and displays the corresponding fixed-seed KL divergence as zero.",
+      "proof_technique": "Equality of random variables implies equality of their laws; KL of a distribution with itself is zero.",
+      "proof_completeness": "self-contained given prop3_quadratic_scrubbing",
+      "depends_on": ["prop3_quadratic_scrubbing"],
+      "formalization_notes": "Not formalized. The current Proposition 3 file proves equality of real-vector values for each initialization but does not define the induced probability laws over real vector spaces or connect that equality to measure-theoretic KL."
+    },
+    {
+      "id": "example1_total_forgetting_limit",
+      "label": "Example 1 (Forgetting by adding noise)",
+      "name": "Gaussian noise gives total forgetting as its variance diverges",
+      "kind": "derived-property",
+      "references": {
+        "human": {
+          "statement": "Sec. 2 'Definition and Testing of Forgetting', Example 1",
+          "pdf_page_statement": 3
+        },
+        "machine": {
+          "source_files": ["main.tex"],
+          "statement_lines": "main.tex L196-201"
+        }
+      },
+      "hypotheses": [
+        "The model weights are bounded.",
+        "Both scrubbers add centered isotropic Gaussian noise with scale sigma."
+      ],
+      "statement_informal": "Adding increasingly large Gaussian noise makes the full-data and retained-data scrubbed weight distributions indistinguishable in KL divergence.",
+      "statement_formal": "For S(w)=S_0(w)=w+sigma n with n ~ N(0,I) and bounded weights, KL(P(S(w)|D)||P(S_0(w)|D_r)) -> 0 as sigma -> infinity.",
+      "proof_as_in_paper": "The paper states the limit as an example and gives no separate derivation.",
+      "proof_completeness": "asserted, not derived",
+      "depends_on": [],
+      "formalization_notes": "Not formalized. A faithful proof requires a continuous Gaussian-mixture KL model and a dominated/asymptotic argument, whereas the current information-theory layer is finite and full-support."
+    },
+    {
+      "id": "corollary1_gaussian_forgetting",
+      "label": "Corollary 1 (Gaussian forgetting), Eq. (5)",
+      "name": "Local Forgetting Bound specialized to equal-covariance Gaussian scrubbing",
+      "kind": "corollary",
+      "references": {
+        "human": {
+          "statement": "Sec. 2.1 'Stability and Local Forgetting Bound', Corollary 1, Eq. (5)",
+          "pdf_page_statement": 4,
+          "equations": ["(5)"]
+        },
+        "machine": {
+          "source_files": ["main.tex"],
+          "statement_lines": "main.tex L226-240"
+        }
+      },
+      "hypotheses": [
+        "For each fixed training seed, S(w)=h(w)+n and S_0(w)=w'+n' use Gaussian noises n,n' with the same positive-definite covariance Sigma.",
+        "The weights w=A(D,epsilon) and w'=A(D_r,epsilon) are deterministic conditional on the seed."
+      ],
+      "statement_informal": "The Local Forgetting Bound becomes the expected equal-covariance Gaussian KL, a half Mahalanobis distance between h(w) and the retained-data weights.",
+      "statement_formal": "KL(P(S(w)|D)||P(S_0(w)|D_r)) <= (1/2) E_epsilon[(h(w)-w')^T Sigma^{-1}(h(w)-w')].",
+      "proof_as_in_paper": "For fixed epsilon, P(S(w)|D,epsilon)=N(h(A(D,epsilon)),Sigma) and P(S_0(w)|D_r,epsilon)=N(A(D_r,epsilon),Sigma). Applying Proposition 2 and the KL formula for Gaussians with equal covariance gives Eq. (5), one half of the expected squared Mahalanobis distance between the two means.",
+      "proof_technique": "Proposition 2 plus the closed formula for KL divergence between Gaussians with equal covariance.",
+      "proof_completeness": "relies on external equal-covariance Gaussian KL formula",
+      "external_dependencies": [
+        "KL(N(mu_1,Sigma)||N(mu_2,Sigma)) = (1/2)(mu_1-mu_2)^T Sigma^{-1}(mu_1-mu_2) for positive-definite Sigma."
+      ],
+      "depends_on": ["prop2_local_forgetting_bound"],
+      "formalization_notes": "Not formalized. The current development proves the finite mixture inequality but does not yet provide multivariate Gaussian measures or their KL formula."
+    }
+  ]
+}
